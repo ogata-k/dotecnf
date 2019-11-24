@@ -5,9 +5,9 @@ use std::io;
 pub enum ECnfParserError {
     ReadFail(io::Error),
     /// line_num, line
-    UnknownError(u16, String),
+    FailParseKey(u16, String),
     /// line_num, res_prefix
-    IllegalEndLine(u16, String),
+    FailParse(u16, String),
     /// line_num, line
     IllegalRightMidParen(u16, String),
     /// line_num, line, separator
@@ -16,14 +16,24 @@ pub enum ECnfParserError {
     UnknownValue(u16, String, String),
 }
 
+#[cfg(test)]
+impl PartialEq for ECnfParserError {
+    fn eq(&self, other: &Self) -> bool {
+        format!("{}", self) == format!("{}", other)
+    }
+}
+
+#[cfg(test)]
+impl Eq for ECnfParserError {}
+
 impl Display for ECnfParserError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         use ECnfParserError::*;
         return match self {
             ReadFail(io_e) => write!(f, "Read Fail: {}", io_e),
-            UnknownError(n, s) => write!(f, "Unknown line: \"{}\" in {}", s, n),
-            IllegalEndLine(n, prefix) => {
-                write!(f, "Illegal End Line with prefix: \"{}\" in {}", prefix, n)
+            FailParseKey(n, s) => write!(f, "Fail parse key at line: \"{}\" in {}", s, n),
+            FailParse(n, prefix) => {
+                write!(f, "Illegal End Line for prefix: \"{}\" in {}", prefix, n)
             }
             IllegalRightMidParen(n, l) => {
                 write!(f, "Unknown end mid paren on line: \"{}\" in {}", l, n)

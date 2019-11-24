@@ -57,7 +57,7 @@ impl ECnfParser {
                 return Ok(());
             } else {
                 // 階層があるのに最後まで到達した場合
-                return Err(ECnfParserError::IllegalEndLine(
+                return Err(ECnfParserError::FailParse(
                     self.line_num,
                     self.join_prefix(),
                 ));
@@ -133,11 +133,12 @@ impl ECnfParser {
                     ));
                 }
             };
+        } else {
+            Err(ECnfParserError::FailParseKey(
+                self.line_num,
+                trim_line.to_string(),
+            ))
         }
-        return Err(ECnfParserError::UnknownError(
-            self.line_num,
-            trim_line.to_string(),
-        ));
     }
 }
 
@@ -188,6 +189,19 @@ mod test {
         }
 
         #[test]
+        fn success_new_line_input() {
+            let input: &str = r#"
+
+                HOGE: "FUGA"
+
+                HOOO: ""
+
+            "#;
+            let result: Vec<(&str, Option<&str>)> =
+                vec![("HOGE", Some("FUGA")), ("HOOO", Some(""))];
+            success_test_helper(input, &result);
+        }
+        #[test]
         fn success_key_empty_value_input() {
             let input: &str = r#"  HO_GE : """#;
             let result: Vec<(&str, Option<&str>)> = vec![("HO_GE", Some(""))];
@@ -198,6 +212,15 @@ mod test {
         fn success_key_none_value_input() {
             let input: &str = r#"  HO_GE : "#;
             let result: Vec<(&str, Option<&str>)> = vec![("HO_GE", None)];
+            success_test_helper(input, &result);
+        }
+
+        #[test]
+        fn success_key_value_empty_hierarchy_input() {
+            let input: &str = r#"
+        DB : {
+        }"#;
+            let result: Vec<(&str, Option<&str>)> = vec![];
             success_test_helper(input, &result);
         }
 
@@ -220,6 +243,24 @@ mod test {
         }
 
         #[test]
+        fn success_key_values_many_empty_hierarchy_input() {
+            let input: &str = r#"
+        DB : {
+            SQLITE: {
+            }
+            LOG_FILE: {
+                DIRECTORY: "./log"
+                PATH: "database.log"
+            }
+        }"#;
+            let result: Vec<(&str, Option<&str>)> = vec![
+                ("DB.LOG_FILE.DIRECTORY", Some("./log")),
+                ("DB.LOG_FILE.PATH", Some("database.log")),
+            ];
+            success_test_helper(input, &result);
+        }
+
+        #[test]
         fn success_key_values_many_hierarchy_input() {
             let input: &str = r#"
         DB : {
@@ -230,9 +271,9 @@ mod test {
                 PATH : ""
             }
             LOG_FILE: {
-                    DIRECTORY: "./log"
-                    PATH: "database.log"
-                }
+                DIRECTORY: "./log"
+                PATH: "database.log"
+            }
         }"#;
             let result: Vec<(&str, Option<&str>)> = vec![
                 ("DB.DRIVER", Some("SQLite")),
@@ -254,7 +295,7 @@ mod test {
         # screen
         SCREEN:{
             # empty setting so empty string
-            SC_ZERO: ""
+            SC_ZERO: "日本語"
             SC_ONE:
             SC_TWO: "default"
 
@@ -263,15 +304,100 @@ mod test {
         }"#;
             let result: Vec<(&str, Option<&str>)> = vec![
                 ("VERSION", Some("4.2.23")),
+                ("SCREEN.SC_ZERO", Some("日本語")),
                 ("SCREEN.SC_ONE", None),
-                ("SCREEN.SC_ZERO", Some("")),
                 ("SCREEN.SC_TWO", Some("default")),
                 ("SCREEN.SC_THREE", Some("hoge hoge ")),
             ];
             success_test_helper(input, &result);
         }
     }
+
     mod error_test {
-        // TODO
+        use crate::error::ECnfParserError;
+        use crate::parser::{ECnfParser, PREFIX_SEPARATOR};
+
+        fn error_test_helper(input: &str, result: ECnfParserError) {
+            let mut parser = ECnfParser::new();
+            let parse_result = parser.load(input.as_bytes());
+            if parse_result.is_ok() {
+                eprintln!("Err: Parse success");
+                eprintln!("input:\t\"{}\"", input);
+                assert!(false);
+            }
+            assert_eq!(parse_result.err().unwrap(), result);
+        }
+
+        #[test]
+        fn error_not_head_comment() {
+            let input: &str = r#"HOGE: "huge"  # comment"#;
+            let err = ECnfParserError::UnknownValue(
+                1,
+                input.to_string(),
+                "\"huge\"  # comment".to_string(),
+            );
+            error_test_helper(input, err);
+        }
+
+        #[test]
+        fn error_not_usable_under_score_for_key_head_char() {
+            let input: &str = r#"_HOGE:"vim style""#;
+            let err = ECnfParserError::FailParseKey(1, input.to_string());
+            error_test_helper(input, err);
+        }
+
+        #[test]
+        fn error_not_usable_character_for_key_head_char() {
+            let input: &str = r#"v_HOGE:"vim style""#;
+            let err = ECnfParserError::FailParseKey(1, input.to_string());
+            error_test_helper(input, err);
+        }
+
+        #[test]
+        fn error_not_usable_character_for_key() {
+            let input: &str = r#"HO_gE:"vim style""#;
+            let err = ECnfParserError::UnknownSeparator(1, input.to_string(), 'g');
+            error_test_helper(input, err);
+        }
+
+        #[test]
+        fn error_unknown_separator() {
+            let input: &str = r#"HOGE="vim style""#;
+            let err = ECnfParserError::UnknownSeparator(1, input.to_string(), '=');
+            error_test_helper(input, err);
+        }
+
+        #[test]
+        fn error_unknown_wrapping_quote() {
+            let input: &str = r#"HOGE:'vim style'"#;
+            let err =
+                ECnfParserError::UnknownValue(1, input.to_string(), "'vim style'".to_string());
+            error_test_helper(input, err);
+        }
+
+        #[test]
+        fn error_empty_hierarchy() {
+            let input: &str = r#"}"#;
+            let err = ECnfParserError::IllegalRightMidParen(1, input.to_string());
+            error_test_helper(input, err);
+        }
+
+        #[test]
+        fn error_position_right_mid_paren() {
+            let input: &str = r#"HOGE:{}"#;
+            let err = ECnfParserError::UnknownValue(1, input.to_string(), "{}".to_string());
+            error_test_helper(input, err);
+        }
+
+        #[test]
+        fn error_end_hierarchy() {
+            let input: &str = r#"
+            DB: {
+                CD: {
+                }
+            "#;
+            let err = ECnfParserError::FailParse(5, "DB".to_string());
+            error_test_helper(input, err);
+        }
     }
 }
