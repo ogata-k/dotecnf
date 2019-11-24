@@ -16,16 +16,6 @@ pub enum ECnfParserError {
     UnknownValue(u16, String, String),
 }
 
-#[cfg(test)]
-impl PartialEq for ECnfParserError {
-    fn eq(&self, other: &Self) -> bool {
-        format!("{}", self) == format!("{}", other)
-    }
-}
-
-#[cfg(test)]
-impl Eq for ECnfParserError {}
-
 impl Display for ECnfParserError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         use ECnfParserError::*;
