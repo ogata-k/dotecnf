@@ -1,0 +1,19 @@
+# example
+APP: {
+    NAME: "example"
+    VERSION: "0.1.0"
+    DOMAIN: "http://example.com/"
+}
+
+DB : {
+    DRIVER :
+    SQLITE: {
+        ACCOUNT_NAME : "user"
+        PASSWORD : "_"3$#"
+        PATH : ""
+    }
+    LOG_FILE: {
+        DIRECTORY: "./log"
+        PATH: "database.log"
+    }
+}

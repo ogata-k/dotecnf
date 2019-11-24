@@ -1,4 +1,4 @@
-use dotecnf::parser::ECnfParser;
+use dotecnf::ECnfLoader;
 
 fn main() {
     let input: &str = r#"
@@ -16,11 +16,11 @@ fn main() {
             # value is "hoge hoge " and key is SCREEN.SC_THREE
             SC_THREE: "hoge hoge "
         }"#;
-    let mut parser = ECnfParser::new();
-    parser.load_from_str(input);
+    let mut loader = ECnfLoader::new();
+    loader.load_from_str(input).unwrap();
 
     println!("result:");
-    let ecnf = parser.build_ecnf();
+    let ecnf = loader.build_ecnf();
     let mut keys: Vec<String> = ecnf.keys().map(|s| s.to_string()).collect();
     keys.sort();
     for k in keys {
