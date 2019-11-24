@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Lines, Read};
 
 pub const PREFIX_SEPARATOR: &'static str = ".";
+pub const PREFIX_KEY_SEPARATOR: &'static str = ".";
 const KEY_VALUE_SEPARATOR: char = ':';
 
 /// Parser for Environment-CoNF
@@ -31,6 +32,14 @@ impl ECnfParser {
     /// prefixを結合する
     fn join_prefix(&self) -> String {
         self.prefix_stack.join(PREFIX_SEPARATOR)
+    }
+
+    fn build_key(&self, key: &str) -> String {
+        if self.prefix_stack.is_empty() {
+            key.to_string()
+        } else {
+            format!("{}{}{}", self.join_prefix(), PREFIX_KEY_SEPARATOR, key)
+        }
     }
 
     // TODO 後はファイルとかパスとかから直接読み取れるようにヘルパも作っておく
@@ -98,8 +107,9 @@ impl ECnfParser {
                     let res_str: &str = chars.as_str();
                     if res_str == "" {
                         // valueがないとき
-                        self.ecnf.insert(key, None);
+                        self.ecnf.insert(self.build_key(&key), None);
                         return self._load(lines);
+                    } else {
                     }
                     if res_str == "{" {
                         // 階層を一つ下がる
@@ -113,7 +123,7 @@ impl ECnfParser {
                         } else {
                             res_str[1..res_str.len() - 1].to_string()
                         };
-                        self.ecnf.insert(key, Some(s));
+                        self.ecnf.insert(self.build_key(&key), Some(s));
                         return self._load(lines);
                     }
                     return Err(UnknownValue(
@@ -131,4 +141,137 @@ impl ECnfParser {
     }
 }
 
-// TODO TEST
+#[cfg(test)]
+mod test {
+    mod success_test {
+        use crate::parser::ECnfParser;
+        use std::collections::HashMap;
+
+        fn success_test_helper(input: &str, result: &[(&str, Option<&str>)]) {
+            let mut parser = ECnfParser::new();
+            if let Err(e) = parser.load(input.as_bytes()) {
+                eprintln!("Err:\t{}", e);
+                eprintln!("input:\t\"{}\"", input);
+                assert!(false);
+            }
+            let actual_ecnf: HashMap<String, Option<String>> = parser.build_ecnf();
+            let mut expect_ecnf: HashMap<String, Option<String>> = HashMap::new();
+            for (key, value) in result {
+                if value.is_none() {
+                    expect_ecnf.insert(key.to_string(), None);
+                } else {
+                    expect_ecnf.insert(key.to_string(), Some(value.unwrap().to_string()));
+                }
+            }
+            assert_eq!(actual_ecnf, expect_ecnf);
+        }
+
+        #[test]
+        fn success_empty_input() {
+            let input: &str = r"";
+            let result: Vec<(&str, Option<&str>)> = vec![];
+            success_test_helper(input, &result);
+        }
+
+        #[test]
+        fn success_comment_input() {
+            let input: &str = r"# hoge i hoge j";
+            let result: Vec<(&str, Option<&str>)> = vec![];
+            success_test_helper(input, &result);
+        }
+
+        #[test]
+        fn success_key_not_empty_value_input() {
+            let input: &str = r#"  HO_GE : " FU ga ""#;
+            let result: Vec<(&str, Option<&str>)> = vec![("HO_GE", Some(" FU ga "))];
+            success_test_helper(input, &result);
+        }
+
+        #[test]
+        fn success_key_empty_value_input() {
+            let input: &str = r#"  HO_GE : """#;
+            let result: Vec<(&str, Option<&str>)> = vec![("HO_GE", Some(""))];
+            success_test_helper(input, &result);
+        }
+
+        #[test]
+        fn success_key_none_value_input() {
+            let input: &str = r#"  HO_GE : "#;
+            let result: Vec<(&str, Option<&str>)> = vec![("HO_GE", None)];
+            success_test_helper(input, &result);
+        }
+
+        #[test]
+        fn success_key_value_hierarchy_input() {
+            let input: &str = r#"
+        DB : {
+            ACCOUNT_NAME :
+            PASSWORD :
+            PATH : ""
+            DRIVER : "SQLite"
+        }"#;
+            let result: Vec<(&str, Option<&str>)> = vec![
+                ("DB.ACCOUNT_NAME", None),
+                ("DB.PASSWORD", None),
+                ("DB.PATH", Some("")),
+                ("DB.DRIVER", Some("SQLite")),
+            ];
+            success_test_helper(input, &result);
+        }
+
+        #[test]
+        fn success_key_values_many_hierarchy_input() {
+            let input: &str = r#"
+        DB : {
+            DRIVER : "SQLite"
+            SQLITE: {
+                ACCOUNT_NAME : "user"
+                PASSWORD :
+                PATH : ""
+            }
+            LOG_FILE: {
+                    DIRECTORY: "./log"
+                    PATH: "database.log"
+                }
+        }"#;
+            let result: Vec<(&str, Option<&str>)> = vec![
+                ("DB.DRIVER", Some("SQLite")),
+                ("DB.SQLITE.ACCOUNT_NAME", Some("user")),
+                ("DB.SQLITE.PASSWORD", None),
+                ("DB.SQLITE.PATH", Some("")),
+                ("DB.LOG_FILE.DIRECTORY", Some("./log")),
+                ("DB.LOG_FILE.PATH", Some("database.log")),
+            ];
+            success_test_helper(input, &result);
+        }
+
+        #[test]
+        fn success_key_values_input() {
+            let input: &str = r#"
+        # app version
+        VERSION :  "4.2.23"
+
+        # screen
+        SCREEN:{
+            # empty setting so empty string
+            SC_ZERO: ""
+            SC_ONE:
+            SC_TWO: "default"
+
+            # value is "hoge hoge " and key is SCREEN.SC_THREE
+            SC_THREE: "hoge hoge "
+        }"#;
+            let result: Vec<(&str, Option<&str>)> = vec![
+                ("VERSION", Some("4.2.23")),
+                ("SCREEN.SC_ONE", None),
+                ("SCREEN.SC_ZERO", Some("")),
+                ("SCREEN.SC_TWO", Some("default")),
+                ("SCREEN.SC_THREE", Some("hoge hoge ")),
+            ];
+            success_test_helper(input, &result);
+        }
+    }
+    mod error_test {
+        // TODO
+    }
+}

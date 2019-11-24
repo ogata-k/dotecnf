@@ -3,28 +3,39 @@ use std::fmt::Write;
 
 /// 大文字のアルファベットであることを判定
 pub fn is_large_alphabetic(c: &char) -> bool {
-    c.is_ascii_alphabetic() && c.to_uppercase().to_string() == c.to_string()
+    c.is_ascii_alphabetic() && c.is_ascii_uppercase()
 }
 
 /// charsを消費して条件を満たす間の文字列を取得
 pub fn to_string_while<F: Fn(&char) -> bool>(chars: &mut Chars, predicate: F) -> String {
     let mut s = String::new();
-    for c in chars.by_ref() {
-        if predicate(&c) {
-            s.write_char(c);
+    let mut _chars = chars.clone();
+    let mut u: usize = 0;
+    loop {
+        // scan on chars
+        if let Some(c) = _chars.next() {
+            if predicate(&c) {
+                s.write_char(c);
+                u += 1;
+                continue;
+            }
+            break;
         }
         break;
+    }
+
+    // consume u chars
+    if u != 0 {
+        for _ in 0..u {
+            chars.next().unwrap();
+        }
     }
     return s;
 }
 
 /// 空白を消費
 pub fn consume_whitespace(chars: &mut Chars) {
-    for c in chars.by_ref() {
-        if !c.is_whitespace() {
-            break;
-        }
-    }
+    let _ = to_string_while(chars, |c| c.is_whitespace());
 }
 
 pub fn start_end_with(target: &str, start: char, end: char) -> bool {
