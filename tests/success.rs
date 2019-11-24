@@ -53,6 +53,17 @@ fn success_new_line_input() {
     let result: Vec<(&str, Option<&str>)> = vec![("HOGE", Some("FUGA")), ("HOOO", Some(""))];
     success_test_helper(input, &result);
 }
+
+#[test]
+fn success_rewrite() {
+    let input: &str = r#"
+        HOGE: "1"
+        HOGE: "2"
+    "#;
+    let result: Vec<(&str, Option<&str>)> = vec![("HOGE", Some("2"))];
+    success_test_helper(input, &result);
+}
+
 #[test]
 fn success_key_empty_value_input() {
     let input: &str = r#"  HO_GE : """#;
