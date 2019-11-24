@@ -2,9 +2,9 @@ use crate::error::ECnfParserError;
 use crate::error::ECnfParserError::{IllegalRightMidParen, UnknownSeparator, UnknownValue};
 use crate::helper::{consume_whitespace, is_large_alphabetic, start_end_with, to_string_while};
 use std::collections::HashMap;
+use std::fs::File;
 use std::io::{BufRead, BufReader, Lines, Read};
 use std::path::Path;
-use std::fs::File;
 
 pub const PREFIX_SEPARATOR: &'static str = ".";
 pub const PREFIX_KEY_SEPARATOR: &'static str = ".";
@@ -142,11 +142,11 @@ impl ECnfParser {
         }
     }
 
-    pub fn load_from_str(&mut self, input: &str)  -> Result<(), ECnfParserError> {
+    pub fn load_from_str(&mut self, input: &str) -> Result<(), ECnfParserError> {
         self.load(input.as_bytes())
     }
 
-    pub fn load_from_file(&mut self, path: &Path)  -> Result<(), ECnfParserError> {
+    pub fn load_from_file(&mut self, path: &Path) -> Result<(), ECnfParserError> {
         self.load(File::open(path)?)
     }
 }
