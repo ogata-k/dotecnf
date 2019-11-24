@@ -36,13 +36,13 @@ SUCCESS: {
 
 ## usage
 
-``` rust:example.rs
-    // init
-    let mut loader = ECnfLoader::new();
-    
-     // load: self.from<R: Read>(R), self.load_from_file(&Path), self.load_from_str(&str))
-    loader.load_from_str(input);
-     
-    let ecnf: HashMap<String, Option<String>> = loader.build_ecnf();
-    // use ecnf...
+``` rust: example.rs
+// init
+let mut loader = ECnfLoader::new();
+
+// load: self.from<R: Read>(R), self.load_from_file(&Path), self.load_from_str(&str))
+loader.load_from_str(input);
+
+let ecnf: HashMap<String, Option<String>> = loader.build_ecnf();
+// use ecnf...
 ```
