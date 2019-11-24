@@ -3,6 +3,8 @@ use crate::error::ECnfParserError::{IllegalRightMidParen, UnknownSeparator, Unkn
 use crate::helper::{consume_whitespace, is_large_alphabetic, start_end_with, to_string_while};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Lines, Read};
+use std::path::Path;
+use std::fs::File;
 
 pub const PREFIX_SEPARATOR: &'static str = ".";
 pub const PREFIX_KEY_SEPARATOR: &'static str = ".";
@@ -42,7 +44,6 @@ impl ECnfParser {
         }
     }
 
-    // TODO 後はファイルとかパスとかから直接読み取れるようにヘルパも作っておく
     /// 入力を元にECnfをパースする
     pub fn load<R: Read>(&mut self, reader: R) -> Result<(), ECnfParserError> {
         let mut lines = BufReader::new(reader).lines();
@@ -139,6 +140,14 @@ impl ECnfParser {
                 trim_line.to_string(),
             ))
         }
+    }
+
+    pub fn load_from_str(&mut self, input: &str)  -> Result<(), ECnfParserError> {
+        self.load(input.as_bytes())
+    }
+
+    pub fn load_from_file(&mut self, path: &Path)  -> Result<(), ECnfParserError> {
+        self.load(File::open(path)?)
     }
 }
 
