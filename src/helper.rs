@@ -15,7 +15,7 @@ pub fn to_string_while<F: Fn(&char) -> bool>(chars: &mut Chars, predicate: F) ->
         // scan on chars
         if let Some(c) = _chars.next() {
             if predicate(&c) {
-                s.write_char(c);
+                let _ = s.write_char(c);
                 u += 1;
                 continue;
             }

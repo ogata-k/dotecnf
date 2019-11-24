@@ -1,6 +1,11 @@
 #[macro_use]
 extern crate failure;
 
-pub mod error;
+mod error;
 mod helper;
-pub mod parser;
+mod loader;
+
+pub use error::ECnfLoaderError;
+pub use loader::ECnfLoader;
+pub use loader::PREFIX_KEY_SEPARATOR;
+pub use loader::PREFIX_SEPARATOR;

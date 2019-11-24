@@ -2,7 +2,7 @@ use failure::_core::fmt::{Display, Error, Formatter};
 use std::io;
 
 #[derive(Debug, Fail)]
-pub enum ECnfParserError {
+pub enum ECnfLoaderError {
     ReadFail(io::Error),
     /// line_num, line
     FailParseKey(u16, String),
@@ -16,9 +16,9 @@ pub enum ECnfParserError {
     UnknownValue(u16, String, String),
 }
 
-impl Display for ECnfParserError {
+impl Display for ECnfLoaderError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        use ECnfParserError::*;
+        use ECnfLoaderError::*;
         return match self {
             ReadFail(io_e) => write!(f, "Read Fail: {}", io_e),
             FailParseKey(n, s) => write!(f, "Fail parse key at line: \"{}\" in {}", s, n),
@@ -40,8 +40,8 @@ impl Display for ECnfParserError {
     }
 }
 
-impl From<io::Error> for ECnfParserError {
+impl From<io::Error> for ECnfLoaderError {
     fn from(e: io::Error) -> Self {
-        ECnfParserError::ReadFail(e)
+        ECnfLoaderError::ReadFail(e)
     }
 }

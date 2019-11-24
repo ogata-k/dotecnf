@@ -1,8 +1,8 @@
-use dotecnf::parser::ECnfParser;
+use dotecnf::ECnfLoader;
 use std::collections::HashMap;
 
 fn success_test_helper(input: &str, result: &[(&str, Option<&str>)]) {
-    let mut parser = ECnfParser::new();
+    let mut parser = ECnfLoader::new();
     if let Err(e) = parser.load(input.as_bytes()) {
         eprintln!("Err:\t{}", e);
         eprintln!("input:\t\"{}\"", input);

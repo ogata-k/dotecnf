@@ -1,5 +1,5 @@
-use crate::error::ECnfParserError;
-use crate::error::ECnfParserError::{IllegalRightMidParen, UnknownSeparator, UnknownValue};
+use crate::error::ECnfLoaderError;
+use crate::error::ECnfLoaderError::{IllegalRightMidParen, UnknownSeparator, UnknownValue};
 use crate::helper::{consume_whitespace, is_large_alphabetic, start_end_with, to_string_while};
 use std::collections::HashMap;
 use std::fs::File;
@@ -11,15 +11,15 @@ pub const PREFIX_KEY_SEPARATOR: &'static str = ".";
 const KEY_VALUE_SEPARATOR: char = ':';
 
 /// Parser for Environment-CoNF
-pub struct ECnfParser {
+pub struct ECnfLoader {
     line_num: u16,
     ecnf: HashMap<String, Option<String>>,
     prefix_stack: Vec<String>,
 }
 
-impl ECnfParser {
+impl ECnfLoader {
     pub fn new() -> Self {
-        ECnfParser {
+        ECnfLoader {
             line_num: 0,
             ecnf: Default::default(),
             prefix_stack: vec![],
@@ -45,12 +45,12 @@ impl ECnfParser {
     }
 
     /// 入力を元にECnfをパースする
-    pub fn load<R: Read>(&mut self, reader: R) -> Result<(), ECnfParserError> {
+    pub fn load<R: Read>(&mut self, reader: R) -> Result<(), ECnfLoaderError> {
         let mut lines = BufReader::new(reader).lines();
         return self._load(&mut lines);
     }
 
-    fn _load<R: Read>(&mut self, lines: &mut Lines<BufReader<R>>) -> Result<(), ECnfParserError> {
+    fn _load<R: Read>(&mut self, lines: &mut Lines<BufReader<R>>) -> Result<(), ECnfLoaderError> {
         let line = lines.next();
         if line.is_none() {
             if self.prefix_stack.is_empty() {
@@ -58,7 +58,7 @@ impl ECnfParser {
                 return Ok(());
             } else {
                 // 階層があるのに最後まで到達した場合
-                return Err(ECnfParserError::FailParse(
+                return Err(ECnfLoaderError::FailParse(
                     self.line_num,
                     self.join_prefix(),
                 ));
@@ -135,18 +135,18 @@ impl ECnfParser {
                 }
             };
         } else {
-            Err(ECnfParserError::FailParseKey(
+            Err(ECnfLoaderError::FailParseKey(
                 self.line_num,
                 trim_line.to_string(),
             ))
         }
     }
 
-    pub fn load_from_str(&mut self, input: &str) -> Result<(), ECnfParserError> {
+    pub fn load_from_str(&mut self, input: &str) -> Result<(), ECnfLoaderError> {
         self.load(input.as_bytes())
     }
 
-    pub fn load_from_file(&mut self, path: &Path) -> Result<(), ECnfParserError> {
+    pub fn load_from_file(&mut self, path: &Path) -> Result<(), ECnfLoaderError> {
         self.load(File::open(path)?)
     }
 }
