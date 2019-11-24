@@ -226,7 +226,7 @@ mod test {
             DRIVER : "SQLite"
             SQLITE: {
                 ACCOUNT_NAME : "user"
-                PASSWORD :
+                PASSWORD : "_"3$#"
                 PATH : ""
             }
             LOG_FILE: {
@@ -237,7 +237,7 @@ mod test {
             let result: Vec<(&str, Option<&str>)> = vec![
                 ("DB.DRIVER", Some("SQLite")),
                 ("DB.SQLITE.ACCOUNT_NAME", Some("user")),
-                ("DB.SQLITE.PASSWORD", None),
+                ("DB.SQLITE.PASSWORD", Some("_\"3$#")),
                 ("DB.SQLITE.PATH", Some("")),
                 ("DB.LOG_FILE.DIRECTORY", Some("./log")),
                 ("DB.LOG_FILE.PATH", Some("database.log")),
